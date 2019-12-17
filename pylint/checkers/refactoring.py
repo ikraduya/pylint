@@ -16,6 +16,7 @@
 # Copyright (c) 2018 Matej Marušák <marusak.matej@gmail.com>
 # Copyright (c) 2018 Ville Skyttä <ville.skytta@upcloud.com>
 # Copyright (c) 2018 Mr. Senko <atodorov@mrsenko.com>
+# Copyright (c) 2019 Ikraduya Edian <ikraduya@gmail.com>
 
 # Licensed under the GPL: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 # For details: https://github.com/PyCQA/pylint/blob/master/COPYING
@@ -296,6 +297,12 @@ class RefactoringChecker(checkers.BaseTokenChecker):
             "As such, it will warn when it encounters an else "
             "following a chain of ifs, all of them containing a "
             "continue statement.",
+        ),
+        "R1725": (
+            "Consider using generator %s(%s)",
+            "consider-using-generator",
+            "Comprehension inside of any or all calls is unnecessary "
+            "and should be replaced by a generator",
         ),
     }
     options = (
@@ -675,16 +682,38 @@ class RefactoringChecker(checkers.BaseTokenChecker):
                 message_name = "consider-using-set-comprehension"
                 self.add_message(message_name, node=node)
 
+    def _check_consider_using_generator(self, node):
+        checked_call = ["any", "all"]
+        if (
+            isinstance(node, astroid.Call)
+            and node.func
+            and isinstance(node.func, astroid.Name)
+            and node.func.name in checked_call
+        ):
+            # any or all calls takes exactly one argument
+            if len(node.args) == 1 and isinstance(node.args[0], astroid.ListComp):
+                inside_comp = node.args[0].as_string()[
+                    1:-1
+                ]  # remove square brackets '[]'
+                call_name = node.func.name
+                self.add_message(
+                    "consider-using-generator",
+                    node=node,
+                    args=(call_name, inside_comp),
+                )
+
     @utils.check_messages(
         "stop-iteration-return",
         "consider-using-dict-comprehension",
         "consider-using-set-comprehension",
         "consider-using-sys-exit",
+        "consider-using-generator",
     )
     def visit_call(self, node):
         self._check_raising_stopiteration_in_generator_next_call(node)
         self._check_consider_using_comprehension_constructor(node)
         self._check_quit_exit_call(node)
+        self._check_consider_using_generator(node)
 
     @staticmethod
     def _has_exit_in_scope(scope):
