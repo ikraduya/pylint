@@ -358,3 +358,6 @@ contributors:
 * Matthijs Blom: contributor
 
 * Andy Palmer: contributor
+
+* Ikraduya Edian: contributor
+  Added new check 'consider-using-generator'.
